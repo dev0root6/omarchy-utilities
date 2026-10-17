@@ -1,0 +1,100 @@
+#!/bin/bash
+# Fan speed control for the Acer Aspire Lite AL15-41 through nbfc-linux.
+#
+#   fan-speed up | down        step the manual speed by 10%
+#   fan-speed auto | max       temperature curve / full speed
+#   fan-speed set <0-100>      fixed speed
+#   fan-speed menu             walker picker
+#   fan-speed status           print mode, speed and CPU temperature
+
+STEP=10
+MIN_MANUAL=10 # 0 on this EC means "EC automatic", so manual mode starts at 10
+state="$HOME/.local/state/fan-speed"
+sync_hint=string:x-canonical-private-synchronous:fan-speed
+
+nbfc_set() {
+  nbfc set "$@" &>/dev/null || sudo -n /usr/bin/nbfc set "$@" &>/dev/null
+}
+
+cpu_temp() {
+  sensors k10temp-* 2>/dev/null | awk '/Tctl/ {gsub(/\+/, "", $2); print $2; exit}'
+}
+
+current_speed() {
+  # actual fan duty in percent as reported by nbfc, rounded to the step
+  nbfc status -f 0 2>/dev/null | awk -F": *" "/Current Fan Speed/ {print \$2}" |
+    awk -v s=$STEP '{printf "%d", int(($1 + s / 2) / s) * s}'
+}
+
+mode() { cat "$state" 2>/dev/null || echo auto; }
+
+notify() {
+  if [[ $1 == auto ]]; then
+    notify-send -a fan-speed -h "$sync_hint" "󰈐   Fan: Auto" "CPU $(cpu_temp)"
+  else
+    notify-send -a fan-speed -h "$sync_hint" -h "int:value:$1" "󰈐   Fan: $1%" "CPU $(cpu_temp)"
+  fi
+}
+
+apply() {
+  if ! pgrep -x nbfc_service >/dev/null; then
+    notify-send -u critical -a fan-speed "󰈐   Fan control unavailable" "nbfc_service is not running"
+    exit 1
+  fi
+  if [[ $1 == auto ]]; then
+    nbfc_set -a
+  else
+    nbfc_set -s "$1"
+  fi || {
+    notify-send -u critical -a fan-speed "󰈐   Fan control failed" "Could not run: nbfc set"
+    exit 1
+  }
+  mkdir -p "${state%/*}"
+  echo "$1" >"$state"
+  notify "$1"
+}
+
+clamp() {
+  local v=$1
+  ((v < MIN_MANUAL)) && v=$MIN_MANUAL
+  ((v > 100)) && v=100
+  echo "$v"
+}
+
+case $1 in
+up | down)
+  cur=$(mode)
+  [[ $cur == auto ]] && cur=$(current_speed)
+  [[ $cur =~ ^[0-9]+$ ]] || cur=50
+  [[ $1 == up ]] && apply "$(clamp $((cur + STEP)))" || apply "$(clamp $((cur - STEP)))"
+  ;;
+auto) apply auto ;;
+max) apply 100 ;;
+set)
+  [[ $2 =~ ^[0-9]+$ ]] || { echo "usage: fan-speed set <0-100>" >&2; exit 2; }
+  apply "$(clamp "$2")"
+  ;;
+menu)
+  choice=$(printf '%s\n' \
+    "󰈐  Auto (temperature curve)" \
+    "󰤆  Silent (20%)" \
+    "󰾅  Balanced (50%)" \
+    "󰓅  Performance (75%)" \
+    "󱐋  Max (100%)" |
+    omarchy-launch-walker --dmenu --width 295 --minheight 1 --maxheight 630 -p "Fan · $(mode)…" 2>/dev/null)
+  case $choice in
+  *Auto*) apply auto ;;
+  *Silent*) apply 20 ;;
+  *Balanced*) apply 50 ;;
+  *Performance*) apply 75 ;;
+  *Max*) apply 100 ;;
+  esac
+  ;;
+status | "")
+  echo "mode: $(mode)  speed: $(current_speed)%  cpu: $(cpu_temp)"
+  ;;
+*)
+  echo "usage: fan-speed up|down|auto|max|set <0-100>|menu|status" >&2
+  exit 2
+  ;;
+esac

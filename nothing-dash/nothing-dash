@@ -1,0 +1,4 @@
+#!/bin/bash
+# Open the dashboard as a web app window, starting its server first if needed.
+systemctl --user is-active -q nothing-dash || { systemctl --user start nothing-dash; sleep 0.5; }
+exec omarchy-launch-webapp http://127.0.0.1:47800

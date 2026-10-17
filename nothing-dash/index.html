@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Glyph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@600;800&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root {
+  --bg: #000;
+  --tile: #0d0d0d;
+  --line: #1f1f1f;
+  --fg: #f2f2f2;
+  --dim: #7a7a7a;
+  --faint: #2a2a2a;
+  --red: #d71921;
+  --dot: "Doto", "Space Mono", monospace;
+  --mono: "Space Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f0f0ee; --tile: #fff; --line: #e2e2e0; --fg: #111; --dim: #8a8a8a; --faint: #dcdcda;
+  }
+}
+:root[data-theme="light"] { --bg: #f0f0ee; --tile: #fff; --line: #e2e2e0; --fg: #111; --dim: #8a8a8a; --faint: #dcdcda; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font: 12px/1.5 var(--mono); padding: 28px 32px 40px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--red); color: #fff; }
+
+.label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.big { font: 800 56px/1 var(--dot); letter-spacing: -.02em; }
+.big small { font-size: 22px; color: var(--dim); margin-left: 2px; }
+.mid { font: 800 26px/1 var(--dot); }
+.red { color: var(--red); }
+
+header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand i { width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: pulse 2s infinite; }
+.brand b { font: 800 22px var(--dot); letter-spacing: .06em; text-transform: uppercase; }
+.meta { color: var(--dim); font-size: 11px; margin-top: 6px; }
+.clock { font: 800 44px/1 var(--dot); text-align: right; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--tile); border: 1px solid var(--line); border-radius: 22px; padding: 18px 20px; min-height: 172px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; position: relative; overflow: hidden; }
+.tile.wide { grid-column: span 2; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-size: 11px; }
+.kv span:nth-child(odd) { color: var(--dim); }
+.kv span:nth-child(even) { text-align: right; }
+canvas { display: block; width: 100%; }
+
+.fan { position: absolute; right: 18px; top: 18px; width: 64px; height: 64px; }
+.fan svg { width: 100%; height: 100%; animation: spin linear infinite; animation-duration: var(--spin, 0s); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hint { font-size: 10px; color: var(--dim); }
+.hint kbd { font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; color: var(--fg); }
+
+.tabs { display: flex; gap: 8px; align-items: center; margin: 28px 0 12px; flex-wrap: wrap; }
+.tab, .chip { font: 700 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; border: 1px solid var(--line); background: transparent; color: var(--dim); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.tab[aria-selected="true"], .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.tabs .spacer { flex: 1; }
+input[type=search] { font: 12px var(--mono); background: var(--tile); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; width: 220px; outline: none; }
+input[type=search]:focus { border-color: var(--dim); }
+
+.panel { background: var(--tile); border: 1px solid var(--line); border-radius: 22px; padding: 6px 0; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+th { font: 700 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); text-align: left; padding: 10px 14px; cursor: pointer; user-select: none; white-space: nowrap; }
+th.num, td.num { text-align: right; }
+th[data-active] { color: var(--fg); }
+th[data-active]::after { content: " •"; color: var(--red); }
+td { padding: 6px 14px; border-top: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+td.sub { color: var(--dim); }
+tr:hover td { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.bar { display: inline-block; height: 4px; border-radius: 2px; background: var(--fg); vertical-align: middle; margin-right: 8px; opacity: .8; }
+.bar.hot { background: var(--red); opacity: 1; }
+.state { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--dim); margin-right: 10px; vertical-align: middle; }
+.state.on { background: var(--fg); border-color: var(--fg); }
+.state.fail { background: var(--red); border-color: var(--red); }
+.end { font: 700 9px var(--mono); letter-spacing: .12em; border: 1px solid var(--line); background: none; color: var(--dim); border-radius: 999px; padding: 2px 8px; cursor: pointer; visibility: hidden; }
+tr:hover .end, .end.armed { visibility: visible; }
+.end.armed { background: var(--red); border-color: var(--red); color: #fff; }
+.summary { padding: 10px 14px 4px; color: var(--dim); font-size: 11px; }
+.empty { padding: 30px; text-align: center; color: var(--dim); }
+.offline header .brand i { background: var(--dim); animation: none; }
+
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  body { padding: 16px; }
+  .grid { grid-template-columns: 1fr; }
+  .tile.wide { grid-column: auto; }
+  .hide-sm { display: none; }
+  input[type=search] { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="brand"><i></i><b id="host">system</b></div>
+    <div class="meta" id="meta">connecting…</div>
+  </div>
+  <div>
+    <div class="clock" id="clock">--:--</div>
+    <div class="meta" style="text-align:right" id="date"></div>
+  </div>
+</header>
+
+<section class="grid">
+  <div class="tile wide">
+    <div class="row"><span class="label">CPU</span><span class="label" id="cpu-meta"></span></div>
+    <div class="row"><div class="big" id="cpu">0<small>%</small></div><div class="kv" id="load"></div></div>
+    <canvas id="cpu-graph" height="64"></canvas>
+  </div>
+  <div class="tile">
+    <span class="label">Memory</span>
+    <div class="big" id="mem">0<small>%</small></div>
+    <canvas id="mem-dots" height="14"></canvas>
+    <div class="kv" id="mem-kv"></div>
+  </div>
+  <div class="tile">
+    <span class="label">Fan · read only</span>
+    <div class="fan" aria-hidden="true">
+      <svg viewBox="0 0 64 64" id="fan-svg"></svg>
+    </div>
+    <div class="big" id="fan">--<small>%</small></div>
+    <div class="kv" id="fan-kv"></div>
+    <div class="hint"><kbd>SUPER ALT =</kbd> <kbd>-</kbd> <kbd>M</kbd></div>
+  </div>
+  <div class="tile">
+    <span class="label">Temperature</span>
+    <div class="big" id="temp">--<small>°C</small></div>
+    <div class="kv" id="temp-kv"></div>
+  </div>
+  <div class="tile">
+    <span class="label">Cores</span>
+    <canvas id="cores" height="80"></canvas>
+    <div class="kv" id="core-kv"></div>
+  </div>
+  <div class="tile">
+    <span class="label">Battery</span>
+    <div class="big" id="bat">--<small>%</small></div>
+    <canvas id="bat-dots" height="14"></canvas>
+    <div class="kv" id="bat-kv"></div>
+  </div>
+  <div class="tile">
+    <span class="label">Network · Disk</span>
+    <canvas id="net-graph" height="44"></canvas>
+    <div class="kv" id="io-kv"></div>
+  </div>
+</section>
+
+<nav class="tabs">
+  <button class="tab" data-tab="procs" aria-selected="true">Processes</button>
+  <button class="tab" data-tab="boot" aria-selected="false">Boot</button>
+  <span id="chips" hidden>
+    <button class="chip" data-scope="all" aria-pressed="true">All</button>
+    <button class="chip" data-scope="system" aria-pressed="false">System</button>
+    <button class="chip" data-scope="user" aria-pressed="false">User</button>
+    <button class="chip" data-scope="session" aria-pressed="false">Session</button>
+  </span>
+  <span class="spacer"></span>
+  <input type="search" id="filter" placeholder="/ filter" autocomplete="off">
+</nav>
+
+<div class="panel" id="procs-panel">
+  <table>
+    <colgroup><col style="width:80px"><col style="width:22%"><col class="hide-sm"><col style="width:120px"><col style="width:130px"><col style="width:90px" class="hide-sm"><col style="width:60px"></colgroup>
+    <thead><tr id="proc-head">
+      <th data-key="pid" class="num">PID</th><th data-key="name">Name</th><th data-key="cmd" class="hide-sm">Command</th>
+      <th data-key="cpu" class="num">CPU</th><th data-key="mem" class="num">Memory</th><th data-key="user" class="hide-sm">User</th><th></th>
+    </tr></thead>
+    <tbody id="proc-body"></tbody>
+  </table>
+</div>
+
+<div class="panel" id="boot-panel" hidden>
+  <div class="summary" id="boot-summary"></div>
+  <table>
+    <colgroup><col style="width:26%"><col class="hide-sm"><col style="width:90px"><col style="width:100px"><col style="width:100px"><col style="width:90px" class="hide-sm"></colgroup>
+    <thead><tr id="boot-head">
+      <th data-key="id">Unit</th><th data-key="desc" class="hide-sm">Description</th><th data-key="scope">Scope</th>
+      <th data-key="boot" class="num">Boot</th><th data-key="mem" class="num">Memory</th><th data-key="cpu" class="num hide-sm">CPU time</th>
+    </tr></thead>
+    <tbody id="boot-body"></tbody>
+  </table>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const bytes = (b, d = 1) => {
+  if (b == null) return "—";
+  const u = ["B", "K", "M", "G", "T"]; let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return b.toFixed(i < 2 ? 0 : d) + u[i];
+};
+const dur = s => {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return (d ? d + "d " : "") + (h ? h + "h " : "") + m + "m";
+};
+const kv = (el, pairs) => el.innerHTML = pairs.map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
+const big = (el, v, unit) => el.innerHTML = `${esc(v)}<small>${unit}</small>`;
+
+// ---------- dot-matrix drawing
+function fit(c) {
+  // the height attribute is overwritten with the scaled pixel size below, so keep the CSS height aside
+  c.dataset.h ||= c.getAttribute("height");
+  const r = devicePixelRatio || 1, w = c.clientWidth, h = +c.dataset.h;
+  if (c.width !== Math.round(w * r) || c.height !== Math.round(h * r)) {
+    c.style.height = h + "px"; c.width = Math.round(w * r); c.height = Math.round(h * r);
+  }
+  const g = c.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h);
+  return [g, w, h];
+}
+function dot(g, x, y, r, color) { g.fillStyle = color; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+
+// history graph: each sample a column of dots, lit from the bottom
+function columns(c, series, max = 100, hotAt = 85) {
+  const [g, w, h] = fit(c), step = 7, rows = Math.floor(h / step), cols = Math.floor(w / step);
+  const data = series.slice(-cols), off = cols - data.length;
+  const fg = css("--fg"), faint = css("--faint"), red = css("--red");
+  for (let i = 0; i < cols; i++) {
+    const v = i >= off ? data[i - off] : 0, lit = Math.round(v / max * rows);
+    for (let j = 0; j < rows; j++) {
+      const on = j < lit;
+      dot(g, i * step + 3.5, h - j * step - 3.5, 2.1, on ? (v >= hotAt && j === lit - 1 ? red : fg) : faint);
+    }
+  }
+}
+// two mirrored series (net rx up, tx down)
+function mirror(c, a, b) {
+  const [g, w, h] = fit(c), step = 7, half = Math.floor(h / step / 2), cols = Math.floor(w / step);
+  const max = Math.max(1, ...a.slice(-cols), ...b.slice(-cols));
+  const fg = css("--fg"), faint = css("--faint"), red = css("--red"), mid = h / 2;
+  const A = a.slice(-cols), B = b.slice(-cols), off = cols - A.length;
+  for (let i = 0; i < cols; i++) {
+    const va = i >= off ? A[i - off] : 0, vb = i >= off ? B[i - off] : 0;
+    const la = Math.ceil(va / max * half), lb = Math.ceil(vb / max * half);
+    for (let j = 0; j < half; j++) {
+      dot(g, i * step + 3.5, mid - 3.5 - j * step, 2.1, j < la ? fg : faint);
+      dot(g, i * step + 3.5, mid + 3.5 + j * step, 2.1, j < lb ? red : faint);
+    }
+  }
+}
+// single-row meter
+function meter(c, pct, hot) {
+  const [g, w, h] = fit(c), step = 9, n = Math.floor(w / step), lit = Math.round(pct / 100 * n);
+  for (let i = 0; i < n; i++) dot(g, i * step + 4.5, h / 2, 3, i < lit ? (hot && i >= lit - 1 ? css("--red") : css("--fg")) : css("--faint"));
+}
+// per-core vertical dot bars
+function coreBars(c, cores) {
+  const [g, w, h] = fit(c), step = 7, rows = Math.floor(h / step), gap = w / cores.length;
+  cores.forEach((v, i) => {
+    const lit = Math.round(v / 100 * rows), x = i * gap + gap / 2;
+    for (let j = 0; j < rows; j++) dot(g, x, h - j * step - 3.5, 2.3, j < lit ? (v >= 90 && j === lit - 1 ? css("--red") : css("--fg")) : css("--faint"));
+  });
+}
+// fan glyph: ring of dots with three dotted blades
+(function fanGlyph() {
+  let s = "";
+  for (let a = 0; a < 360; a += 15) { const r = a * Math.PI / 180; s += `<circle cx="${32 + 29 * Math.cos(r)}" cy="${32 + 29 * Math.sin(r)}" r="1.6" fill="currentColor" opacity=".35"/>`; }
+  for (let b = 0; b < 3; b++) for (let k = 1; k <= 5; k++) {
+    const r = (b * 120 + k * 9) * Math.PI / 180, d = 5 + k * 4.2;
+    s += `<circle cx="${32 + d * Math.cos(r)}" cy="${32 + d * Math.sin(r)}" r="${2.6 - k * .25}" fill="currentColor"/>`;
+  }
+  $("fan-svg").innerHTML = s + `<circle cx="32" cy="32" r="3" fill="var(--red)"/>`;
+})();
+
+// ---------- state
+const hist = { cpu: [], rx: [], tx: [] };
+let last = null, tab = "procs", scope = "all", bootData = null;
+const sorts = { procs: { key: "cpu", dir: -1 }, boot: { key: "boot", dir: -1 } };
+let armed = null;
+
+function sortRows(rows, { key, dir }) {
+  return rows.sort((a, b) => {
+    const x = a[key], y = b[key];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * dir;
+  });
+}
+function markSort(headId, s) {
+  document.querySelectorAll(`#${headId} th`).forEach(th => th.toggleAttribute("data-active", th.dataset.key === s.key));
+}
+
+// ---------- render
+function render(d, fresh = true) {
+  last = d;
+  document.body.classList.remove("offline");
+  $("host").textContent = d.host;
+  $("meta").textContent = `up ${dur(d.uptime)} · ${d.tasks} tasks · ${d.kernel}`;
+
+  if (fresh) hist.cpu.push(d.cpu.total), hist.rx.push(d.net.rx), hist.tx.push(d.net.tx);
+  for (const k in hist) if (hist[k].length > 300) hist[k].shift();
+
+  big($("cpu"), Math.round(d.cpu.total), "%");
+  $("cpu").classList.toggle("red", d.cpu.total >= 85);
+  $("cpu-meta").textContent = `${d.cpu.cores.length} threads · ${(d.cpu.freq / 1000).toFixed(2)} GHz`;
+  kv($("load"), [["load 1m", d.load[0].toFixed(2)], ["5m", d.load[1].toFixed(2)], ["15m", d.load[2].toFixed(2)]]);
+  columns($("cpu-graph"), hist.cpu);
+
+  const m = d.mem, mp = m.used / m.total * 100;
+  big($("mem"), Math.round(mp), "%");
+  meter($("mem-dots"), mp, mp >= 90);
+  kv($("mem-kv"), [["used", `${bytes(m.used)} / ${bytes(m.total)}`], ["cache", bytes(m.cached)], ["swap", m.swap_total ? `${bytes(m.swap_used)} / ${bytes(m.swap_total)}` : "off"]]);
+
+  const f = d.fan;
+  if (f) {
+    big($("fan"), Math.round(f.speed), "%");
+    $("fan").classList.toggle("red", f.critical || f.speed >= 95);
+    const mode = f.critical ? "CRITICAL" : f.mode === "auto" ? "auto curve" : `manual ${f.mode}%`;
+    kv($("fan-kv"), [["mode", mode], ["target", Math.round(f.target) + "%"]]);
+    // rotation speed follows the real duty; 0 stops it
+    document.querySelector(".fan").style.setProperty("--spin", f.speed > 1 ? (3.2 - f.speed / 100 * 2.8).toFixed(2) + "s" : "0s");
+  } else {
+    big($("fan"), "--", "%");
+    kv($("fan-kv"), [["nbfc", "not running"]]);
+  }
+
+  const t = d.temps, cpuT = t.k10temp ?? Math.max(...Object.values(t));
+  big($("temp"), Math.round(cpuT), "°C");
+  $("temp").classList.toggle("red", cpuT >= 85);
+  const names = { k10temp: "cpu", amdgpu: "gpu", nvme: "ssd", mt7921_phy0: "wifi", acpitz: "acpi" };
+  kv($("temp-kv"), Object.entries(t).filter(([k]) => k !== "k10temp").map(([k, v]) => [names[k] || k, v.toFixed(0) + "°"]));
+
+  coreBars($("cores"), d.cpu.cores);
+  const busiest = d.cpu.cores.indexOf(Math.max(...d.cpu.cores));
+  kv($("core-kv"), [["busiest", `#${busiest} · ${Math.round(d.cpu.cores[busiest])}%`]]);
+
+  const b = d.battery;
+  if (b) {
+    big($("bat"), b.pct, "%");
+    $("bat").classList.toggle("red", b.pct <= 15 && b.status !== "Charging");
+    meter($("bat-dots"), b.pct, b.pct <= 15);
+    kv($("bat-kv"), [["state", b.status.toLowerCase()], ["power", b.watts ? b.watts + " W" : "—"]]);
+  }
+
+  mirror($("net-graph"), hist.rx, hist.tx);
+  const dp = d.disk.used / d.disk.total * 100;
+  kv($("io-kv"), [["↓ down", bytes(d.net.rx) + "/s"], ["↑ up", bytes(d.net.tx) + "/s"], ["disk /", `${bytes(d.disk.used)} / ${bytes(d.disk.total)} · ${Math.round(dp)}%`], ["r / w", `${bytes(d.disk.read)}/s · ${bytes(d.disk.write)}/s`]]);
+
+  if (tab === "procs") renderProcs();
+}
+
+function renderProcs() {
+  if (!last) return;
+  const q = $("filter").value.trim().toLowerCase();
+  let rows = last.procs.filter(p => !q || p.name.toLowerCase().includes(q) || p.cmd.toLowerCase().includes(q) || String(p.pid) === q);
+  rows = sortRows(rows, sorts.procs).slice(0, 40);
+  markSort("proc-head", sorts.procs);
+  const maxMem = last.mem.total, perCore = 100;
+  $("proc-body").innerHTML = rows.length ? rows.map(p => {
+    const cw = Math.min(40, p.cpu / perCore * 40), mw = Math.min(40, p.mem / maxMem * 400);
+    return `<tr>
+      <td class="num sub">${p.pid}</td>
+      <td>${esc(p.name)}</td>
+      <td class="sub hide-sm" title="${esc(p.cmd)}">${esc(p.cmd)}</td>
+      <td class="num"><span class="bar${p.cpu >= 80 ? " hot" : ""}" style="width:${cw}px"></span>${p.cpu.toFixed(1)}</td>
+      <td class="num"><span class="bar" style="width:${mw}px"></span>${bytes(p.mem)}</td>
+      <td class="sub hide-sm">${esc(p.user)}</td>
+      <td class="num">${p.own ? `<button class="end${armed === p.pid ? " armed" : ""}" data-pid="${p.pid}">${armed === p.pid ? "SURE?" : "END"}</button>` : ""}</td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="7" class="empty">nothing matches</td></tr>`;
+}
+
+function renderBoot() {
+  if (!bootData) { $("boot-body").innerHTML = `<tr><td colspan="6" class="empty">reading boot units…</td></tr>`; return; }
+  $("boot-summary").textContent = bootData.summary;
+  const q = $("filter").value.trim().toLowerCase();
+  let rows = bootData.items.filter(u => (scope === "all" || u.scope === scope) && (!q || u.id.toLowerCase().includes(q) || u.desc.toLowerCase().includes(q)));
+  rows = sortRows(rows, sorts.boot);
+  markSort("boot-head", sorts.boot);
+  const maxBoot = Math.max(1, ...rows.map(u => u.boot || 0));
+  $("boot-body").innerHTML = rows.length ? rows.map(u => {
+    const st = u.active === "failed" ? "fail" : u.active === "active" ? "on" : "";
+    const bw = u.boot ? Math.max(2, u.boot / maxBoot * 40) : 0;
+    return `<tr>
+      <td title="${esc(u.active)} ${esc(u.sub)}"><span class="state ${st}"></span>${esc(u.id)}</td>
+      <td class="sub hide-sm" title="${esc(u.desc)}">${esc(u.desc)}</td>
+      <td class="sub">${u.scope}</td>
+      <td class="num">${u.boot ? `<span class="bar${u.boot >= 3 ? " hot" : ""}" style="width:${bw}px"></span>${u.boot < 1 ? Math.round(u.boot * 1000) + "ms" : u.boot.toFixed(2) + "s"}` : `<span class="sub">—</span>`}</td>
+      <td class="num">${bytes(u.mem)}</td>
+      <td class="num sub hide-sm">${u.cpu != null ? u.cpu.toFixed(1) + "s" : "—"}</td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="6" class="empty">nothing matches</td></tr>`;
+}
+
+// ---------- data
+async function poll() {
+  try {
+    const r = await fetch("/api/stats");
+    render(await r.json());
+  } catch {
+    document.body.classList.add("offline");
+    $("meta").textContent = "dashboard server offline · systemctl --user start nothing-dash";
+  }
+}
+async function pollBoot() {
+  try { bootData = await (await fetch("/api/boot")).json(); } catch {}
+  if (tab === "boot") renderBoot();
+}
+
+function tick() {
+  const n = new Date();
+  $("clock").textContent = n.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  $("date").textContent = n.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+}
+
+// ---------- events
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x === b));
+  $("procs-panel").hidden = tab !== "procs";
+  $("boot-panel").hidden = tab !== "boot";
+  $("chips").hidden = tab !== "boot";
+  tab === "boot" ? (renderBoot(), pollBoot()) : renderProcs();
+});
+document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+  scope = b.dataset.scope;
+  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === b));
+  renderBoot();
+});
+function sortable(headId, which, redraw) {
+  document.querySelectorAll(`#${headId} th[data-key]`).forEach(th => th.onclick = () => {
+    const s = sorts[which];
+    s.dir = s.key === th.dataset.key ? -s.dir : (["name", "id", "cmd", "user", "desc", "scope"].includes(th.dataset.key) ? 1 : -1);
+    s.key = th.dataset.key;
+    redraw();
+  });
+}
+sortable("proc-head", "procs", renderProcs);
+sortable("boot-head", "boot", renderBoot);
+$("filter").oninput = () => tab === "procs" ? renderProcs() : renderBoot();
+
+// END needs two clicks: first arms, second sends SIGTERM
+$("proc-body").onclick = async e => {
+  const btn = e.target.closest(".end"); if (!btn) return;
+  const pid = +btn.dataset.pid;
+  if (armed !== pid) { armed = pid; renderProcs(); setTimeout(() => { if (armed === pid) { armed = null; renderProcs(); } }, 3000); return; }
+  armed = null;
+  await fetch("/api/kill", { method: "POST", headers: { "Content-Type": "application/json", "X-Dash": "1" }, body: JSON.stringify({ pid }) });
+  poll();
+};
+addEventListener("keydown", e => {
+  if (e.key === "/" && document.activeElement !== $("filter")) { e.preventDefault(); $("filter").focus(); }
+  else if (e.key === "Escape") { $("filter").value = ""; $("filter").blur(); tab === "procs" ? renderProcs() : renderBoot(); }
+  else if (document.activeElement !== $("filter") && (e.key === "p" || e.key === "b")) document.querySelector(`.tab[data-tab="${e.key === "p" ? "procs" : "boot"}"]`).click();
+});
+addEventListener("resize", () => last && render(last, false));
+
+tick(); setInterval(tick, 1000);
+poll(); setInterval(poll, 1500);
+pollBoot(); setInterval(pollBoot, 15000);
+</script>
+</body>
+</html>

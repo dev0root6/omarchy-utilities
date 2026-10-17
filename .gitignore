@@ -1,0 +1,4 @@
+__pycache__/
+# machine-specific EC dumps, DSDT and setup logs
+fan-control/probe/
+fan-control/*.log

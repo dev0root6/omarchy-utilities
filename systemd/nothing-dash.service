@@ -1,0 +1,10 @@
+[Unit]
+Description=Nothing-style system dashboard on 127.0.0.1:47800
+
+[Service]
+ExecStart=/usr/bin/python3 %h/nothing-dash/server.py
+Restart=on-failure
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
+
+[Install]
+WantedBy=default.target

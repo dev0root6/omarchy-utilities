@@ -1,0 +1,55 @@
+{
+    "NotebookModel": "Acer Aspire Lite AL15-41",
+    "Author": "dev0root",
+    "EcPollInterval": 1000,
+    "CriticalTemperature": 90,
+    "CriticalTemperatureOffset": 10,
+    "FanConfigurations": [
+        {
+            "FanDisplayName": "CPU fan",
+            "Comment": "Read 0xCE = DUT1 (fan duty). Write 0xE7 = XFAN (fan override, 0 = EC automatic). Measured on BIOS 1.07.22RAC1: DUT1 settles at XFAN + 79, ramping about 2 steps per second, so XFAN 176 gives full duty 255; the read range 79-255 makes read and write percentages line up.",
+            "ReadRegister": 206,
+            "WriteRegister": 231,
+            "MinSpeedValue": 0,
+            "MaxSpeedValue": 176,
+            "IndependentReadMinMaxValues": true,
+            "MinSpeedValueRead": 79,
+            "MaxSpeedValueRead": 255,
+            "ResetRequired": true,
+            "FanSpeedResetValue": 0,
+            "TemperatureThresholds": [
+                {
+                    "UpThreshold": 0,
+                    "DownThreshold": 0,
+                    "FanSpeed": 0.0
+                },
+                {
+                    "UpThreshold": 60,
+                    "DownThreshold": 52,
+                    "FanSpeed": 30.0
+                },
+                {
+                    "UpThreshold": 68,
+                    "DownThreshold": 60,
+                    "FanSpeed": 50.0
+                },
+                {
+                    "UpThreshold": 75,
+                    "DownThreshold": 67,
+                    "FanSpeed": 70.0
+                },
+                {
+                    "UpThreshold": 82,
+                    "DownThreshold": 74,
+                    "FanSpeed": 85.0
+                },
+                {
+                    "UpThreshold": 88,
+                    "DownThreshold": 80,
+                    "FanSpeed": 100.0
+                }
+            ]
+        }
+    ],
+    "Comment": "Registers checked against the AL15-41 DSDT and a read-only EC probe (BIOS 1.07.22RAC1). XFAN=0 hands the fan back to the EC's own curve."
+}
